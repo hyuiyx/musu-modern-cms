@@ -10,132 +10,15 @@ async function media(req,env){const key=decodeURIComponent(new URL(req.url).path
 async function api(req,env){const u=new URL(req.url);if(u.hostname!==env.ADMIN_HOST)return j({error:'Forbidden'},403);if(u.pathname==='/api/admin/products'&&req.method==='GET'){const r=await env.DB.prepare('SELECT * FROM products ORDER BY id DESC').all();return j(r.results)}if(u.pathname==='/api/admin/products'&&req.method==='POST'){const b=await req.json(),n=String(b.name||'').trim(),slug=sl(b.slug||n);if(!n||!slug)return j({error:'Name required'},400);const r=await env.DB.prepare('INSERT INTO products(name,slug,summary,description,status,seo_title,seo_description,updated_at) VALUES(?,?,?,?,?,?,?,?)').bind(n,slug,b.summary||'',b.description||'',b.status||'draft',b.seo_title||'',b.seo_description||'',new Date().toISOString()).run();return j({success:true,id:r.meta.last_row_id})}const m=u.pathname.match(/^\/api\/admin\/products\/(\d+)$/);if(m&&req.method==='PUT'){const b=await req.json();await env.DB.prepare('UPDATE products SET name=?,slug=?,summary=?,description=?,status=?,seo_title=?,seo_description=?,updated_at=? WHERE id=?').bind(b.name,sl(b.slug||b.name),b.summary||'',b.description||'',b.status||'draft',b.seo_title||'',b.seo_description||'',new Date().toISOString(),+m[1]).run();return j({success:true})}if(u.pathname==='/api/admin/media'&&req.method==='POST'){const fd=await req.formData(),f=fd.get('file');if(!f||typeof f==='string')return j({error:'No file'},400);const ok=['image/jpeg','image/png','image/webp','image/gif','video/mp4','application/pdf'];if(!ok.includes(f.type))return j({error:'Unsupported type'},400);const ext=(f.name.split('.').pop()||'bin').replace(/\W/g,'').toLowerCase(),kind=f.type.startsWith('image/')?'images':f.type.startsWith('video/')?'videos':'documents',key=`${kind}/${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}.${ext}`;await env.MEDIA.put(key,f.stream(),{httpMetadata:{contentType:f.type}});return j({success:true,key,url:`/media/${key}`})}return j({error:'Not Found'},404)}
 async function sitemap(env){const p=await env.DB.prepare("SELECT slug,updated_at FROM products WHERE status='published'").all();const xml=`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://smusu.com/</loc></url>${p.results.map(x=>`<url><loc>https://smusu.com/products/${e(x.slug)}/</loc><lastmod>${e(x.updated_at)}</lastmod></url>`).join('')}</urlset>`;return new Response(xml,{headers:{'content-type':'application/xml;charset=utf-8'}})}
 export default {
-  async fetch(req, env) {
-    try {
-      const u = new URL(req.url);
-
-      if (u.pathname.startsWith("/media/")) {
-        return await media(req, env);
-      }
-
-      if (u.pathname.startsWith("/api/")) {
-        return await api(req, env);
-      }
-
-      if (u.hostname === env.ADMIN_HOST) {
-        return await env.ASSETS.fetch(
-          new Request(
-            new URL("/admin.html", req.url),
-            req
-          )
-        );
-      }
-
-      if (u.hostname === "www.smusu.com") {
-        u.hostname = "smusu.com";
-
-        return Response.redirect(
-          u.toString(),
-          301
-        );
-      }
-
-      const rd = await env.DB
-        .prepare(
-          "SELECT new_path,status_code FROM redirects WHERE old_path=?"
-        )
-        .bind(u.pathname)
-        .first();
-
-      if (rd) {
-        return Response.redirect(
-          `${env.SITE_URL}${rd.new_path}`,
-          rd.status_code || 301
-        );
-      }
-
-      if (u.pathname === "/") {
-        return await home(env);
-      }
-
-      if (/^\/products\/?$/.test(u.pathname)) {
-        return await productList(env);
-      }
-
-      const productMatch =
-        u.pathname.match(
-          /^\/products\/([^/]+)\/?$/
-        );
-
-      if (productMatch) {
-        return await product(
-          env,
-          decodeURIComponent(
-            productMatch[1]
-          )
-        );
-      }
-
-      if (
-        u.pathname === "/about/" ||
-        u.pathname === "/about"
-      ) {
-        return await simple(
-          env,
-          "about"
-        );
-      }
-
-      if (
-        u.pathname === "/contact/" ||
-        u.pathname === "/contact"
-      ) {
-        return await simple(
-          env,
-          "contact"
-        );
-      }
-
-      if (/^\/news\/?$/.test(u.pathname)) {
-        return await contentList(
-          env,
-          "news"
-        );
-      }
-
-      if (/^\/cases\/?$/.test(u.pathname)) {
-        return await contentList(
-          env,
-          "case"
-        );
-      }
-
-      if (u.pathname === "/sitemap.xml") {
-        return await sitemap(env);
-      }
-
-      return await env.ASSETS.fetch(req);
-
-    } catch (error) {
-
-      console.error(
-        "SMUSU Worker Error:",
-        error
-      );
-
-      return new Response(
-        `Internal Server Error\n\n${
-          error?.message ||
-          String(error)
-        }`,
-        {
-          status: 500,
-          headers: {
-            "Content-Type":
-              "text/plain; charset=utf-8"
-          }
+  async fetch(request, env, ctx) {
+    return new Response(
+      "SMUSU Worker OK",
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8"
         }
-      );
-    }
+      }
+    );
   }
 };
