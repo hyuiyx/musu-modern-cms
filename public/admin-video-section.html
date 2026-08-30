@@ -1,0 +1,26 @@
+<!-- Replace the old #videos tab with this block -->
+<section id="videos" class="tab hide videoEditor">
+  <h2>视频管理 V4.3</h2>
+  <form id="videoForm" class="assetBox">
+    <input type="hidden" name="id">
+    <div class="form">
+      <input name="title" id="videoTitle" required placeholder="视频标题">
+      <input name="slug" placeholder="URL Slug，可留空自动生成">
+      <select name="status" id="videoStatus"><option value="draft">草稿</option><option value="published">发布</option></select>
+      <input name="sort_order" type="number" value="0" placeholder="排序">
+    </div>
+    <textarea name="description" id="videoDesc" placeholder="视频描述"></textarea>
+    <h3>视频文件</h3>
+    <input name="file" id="videoFile" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime">
+    <p class="fileInfo">新建时必选；编辑时不选则保留原文件。最大 100 MB。</p>
+    <video id="videoPreview" controls preload="metadata" class="hide"></video>
+    <h3>视频封面</h3>
+    <input name="poster" id="videoPoster" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+    <label class="removeCheck"><input name="remove_poster" type="checkbox" value="1">移除当前封面</label>
+    <img id="videoPosterPreview" class="hide" alt="视频封面预览">
+    <progress id="videoProgress" value="0" max="100"></progress>
+    <div class="inline"><button type="submit">保存视频</button><button id="videoNew" type="button">新建</button><button id="videoDelete" type="button" class="danger">删除当前视频</button></div>
+  </form>
+  <div id="videoList"></div>
+</section>
+<script src="/video-v43.js"></script>
