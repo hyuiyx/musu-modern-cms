@@ -1,27 +1,20 @@
-# SMUSU Modern CMS Template
+# SMUSU Modern CMS V2
 
-Modernized Cloudflare Worker + D1 + R2 company/product-site starter based on SMUSU's current information architecture: Home, About, Product, News, Cases, Video and Contact, with six core product families.
+This V2 replaces the original Worker routing code while reusing the existing Cloudflare resources.
 
-## Deploy to Cloudflare
+## Existing bindings
+- D1: `musu-db`
+- R2: `smusu-media`
+- Test site: `https://staging.ufya.tech`
+- Test admin: `https://admin.ufya.tech`
 
-1. Upload this folder to a **public GitHub repository**.
-2. Replace `YOUR_GITHUB_REPO_URL` in this README.
-3. Click:
+## Upgrade from V1
+1. Keep your existing D1 and R2. Do not delete them.
+2. Upload/overwrite these V2 files in the existing GitHub repository.
+3. Commit to `main`; Cloudflare Workers Builds will deploy automatically.
+4. Test the workers.dev URL first.
+5. Add Custom Domains only after workers.dev works.
+6. Protect `admin.ufya.tech` with Cloudflare Access before using the admin UI.
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=YOUR_GITHUB_REPO_URL)
-
-The deploy script runs D1 migrations first, then deploys the Worker.
-
-## After deployment
-
-- Worker > Settings > Domains & Routes: add `smusu.com`, `www.smusu.com`, `admin.smusu.com`.
-- Cloudflare Zero Trust > Access: protect **admin.smusu.com** before using it.
-- Open `https://admin.smusu.com` to create/edit products and upload media.
-- Add product images/specifications and News/Cases during migration. The schema is ready for them.
-- Add legacy URLs to the `redirects` table so existing SMUSU paths permanently redirect to new URLs.
-
-## Important
-
-This is a full deployable architecture/template, not a byte-for-byte copy of the current site's copyrighted design/assets. It uses an original, modern industrial visual system while preserving the present business information architecture.
-
-For production: keep Cloudflare Access enabled for admin, add Turnstile to public inquiry submission, use presigned/multipart R2 upload for large video, validate media sizes, keep D1 backups, and add content-editor screens for News/Cases/Pages as the next CMS iteration.
+## Notes
+The CMS V2 includes Products and R2 media upload UI. The database schema already supports categories, specifications, news, cases, videos, pages, redirects and inquiries; additional admin editors can be layered on without changing the public routing architecture.

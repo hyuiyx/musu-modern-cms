@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);CREATE INDEX IF NOT EXISTS idx_images_product ON product_images(product_id);CREATE INDEX IF NOT EXISTS idx_specs_product ON product_specs(product_id);CREATE INDEX IF NOT EXISTS idx_posts_type_status ON posts(type,status);

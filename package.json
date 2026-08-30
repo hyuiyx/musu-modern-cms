@@ -1,1 +1,5 @@
-{"name":"smusu-modern-cms","version":"1.0.0","private":true,"scripts":{"dev":"wrangler dev","db:migrate":"wrangler d1 migrations apply DB --remote","deploy":"npm run db:migrate && wrangler deploy"},"devDependencies":{"wrangler":"^4.0.0"}}
+{
+  "name":"musu-modern-cms-v2","version":"2.0.0","private":true,
+  "scripts":{"dev":"wrangler dev","deploy":"wrangler deploy"},
+  "devDependencies":{"wrangler":"^4.0.0"}
+}
