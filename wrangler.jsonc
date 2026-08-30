@@ -2,7 +2,7 @@
  "$schema":"./node_modules/wrangler/config-schema.json",
  "name":"smusu-modern-cms","main":"src/index.js","compatibility_date":"2026-08-30",
  "assets":{"directory":"./public","binding":"ASSETS","run_worker_first":true},
- "d1_databases":[{"binding":"DB","database_name":"smusu-db","database_id":"00000000-0000-0000-0000-000000000000","migrations_dir":"migrations"}],
+ "d1_databases":[{"binding":"DB","database_name":"smusu-db","database_id":"1982263a-9d50-4ce5-ab2c-c9c263a7351a","migrations_dir":"migrations"}],
  "r2_buckets":[{"binding":"MEDIA","bucket_name":"smusu-media"}],
  "vars":{"SITE_URL":"https://smusu.com","ADMIN_HOST":"admin.smusu.com"}
 }
