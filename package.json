@@ -1,11 +1,1 @@
-{
-  "name":"smusu-cms-v433",
-  "version":"4.3.3",
-  "private":true,
-  "scripts":{
-    "patch":"node tools/apply-v433.mjs",
-    "dev":"npm run patch && wrangler dev",
-    "deploy":"npm run patch && wrangler deploy"
-  },
-  "devDependencies":{"wrangler":"^4.2.0"}
-}
+{"name":"smusu-cms-v434","version":"4.3.4","private":true,"scripts":{"patch":"node tools/apply-v434.mjs","dev":"npm run patch && wrangler dev","deploy":"npm run patch && wrangler deploy"},"devDependencies":{"wrangler":"^4.2.0"}}
