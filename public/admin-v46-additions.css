@@ -1,0 +1,2 @@
+/* Append this file's content to the end of your existing public/admin.css */
+.videoRow{grid-template-columns:1.2fr .7fr .7fr 1.6fr auto}.videoPreview{display:block;width:min(760px,100%);max-height:430px;margin:12px 0;background:#111;border-radius:12px}.videoPoster{display:block;width:min(480px,100%);aspect-ratio:16/9;object-fit:cover;border-radius:12px;margin:12px 0}.secondary{background:#0b6bcb}.saveResult.success{color:#067647;background:#ecfdf3}.saveResult.error{color:#b42318;background:#fef3f2}@media(max-width:850px){.videoRow{grid-template-columns:1fr}}

@@ -1,1 +1,1 @@
-{"name":"smusu-cms-v46","version":"4.6.0","private":true,"scripts":{"patch":"node tools/apply-v46.mjs","dev":"npm run patch && wrangler dev","deploy":"npm run patch && wrangler deploy"},"devDependencies":{"wrangler":"^4.2.0"}}
+{"name":"smusu-cms-v46","version":"4.6.0","private":true,"scripts":{"dev":"wrangler dev","deploy":"wrangler deploy"},"devDependencies":{"wrangler":"^4.2.0"}}
