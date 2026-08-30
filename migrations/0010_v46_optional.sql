@@ -1,0 +1,2 @@
+-- V4.6 API automatically checks and adds missing fields.
+-- This file is for audit only and does not need to be run manually.
