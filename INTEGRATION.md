@@ -1,66 +1,74 @@
-# SMUSU CMS V4.3 升级说明
+# SMUSU CMS V4.3.2 完整接入
 
-此包基于用户提供的 V4.2 文本快照制作。因为输入是文本清单而不是原始 ZIP，包内提供完整的新视频模块和精确接入说明，不会覆盖或猜测未完整保真的原文件。
+本补丁针对截图中的两个实际问题：Hero 图片固定 `object-fit: cover` 但没有焦点控制，以及线上视频区仍是 V4.2 的纯上传界面。
 
-## 1. 备份
-备份 D1，并保留现有 `wrangler.jsonc` 中的 D1 database_id、R2 bucket_name、SITE_URL 和 ADMIN_HOST。
+## 一、数据库
+在 D1 Studio 先执行：
+```sql
+PRAGMA table_info(hero_slides);
+PRAGMA table_info(videos);
+```
+然后从 `migrations/0010_v432.sql` 中仅执行不存在字段对应的 ALTER。不要重复添加已有字段。
 
-## 2. 数据库
-先在 D1 Studio 执行 `PRAGMA table_info(...)` 检查字段。仅执行尚不存在的 `ALTER TABLE` 行，然后执行索引和 UPDATE。
+## 二、复制前端文件
+复制：
+- `public/admin-v432.js` 到项目 `public/`
+- `public/admin-v432.css` 到项目 `public/`
 
-## 3. Worker 接入
-复制 `src/video-v43.js` 到项目 `src/`。
+在 `public/admin.html` 的 `</head>` 前加入：
+```html
+<link rel="stylesheet" href="/admin-v432.css">
+```
+在原 `/admin.js` 之后、`</body>` 前加入：
+```html
+<script src="/admin-v432.js"></script>
+```
+顺序必须在旧 admin.js 后面。补丁会自动替换旧视频区域并增强现有 Hero 表单。
 
+在 `src/index.js` 静态资源列表中加入：
+```js
+'/admin-v432.js','/admin-v432.css'
+```
+
+## 三、复制后端文件
+复制 `src/v432-api.js` 到项目 `src/`。
 在 `src/index.js` 顶部加入：
 ```js
-import {videoAdminApi,videoPublicHtml} from './video-v43.js';
+import {v432Api} from './v432-api.js';
 ```
-
-在 `api(req,env)` 完成 ADMIN_HOST 检查后、旧 videos API 前加入：
+在 `api(req,env)` 完成 ADMIN_HOST 校验后，任何旧 Hero/Video POST 路由之前加入：
 ```js
-const videoResponse=await videoAdminApi(req,env,u);
-if(videoResponse)return videoResponse;
+const v432Response=await v432Api(req,env,u);
+if(v432Response)return v432Response;
 ```
-删除旧的 `/api/admin/videos` GET/POST 两段，避免旧路由抢先响应。
+删除旧 `/api/admin/videos` GET/POST 代码，或确保上面的调用位于旧代码之前。
 
-把原 `videos(env)` 改为：
+## 四、让前台 Hero 使用保存的位置
+把 Hero 图片标签从：
 ```js
-async function videos(env){
-  const d=await data(env);
-  return shell({title:'Videos'},await videoPublicHtml(env),d);
-}
+`<img src="/media/${esc(x.image_key)}" alt="${esc(x.title)}">`
 ```
-
-静态资源白名单加入 `/video-v43.js` 和 `/video-v43.css`。
-
-## 4. 后台接入
-用 `public/admin-video-section.html` 中的 section 替换旧视频 section。不要再保留旧 `#videoUpload` 点击逻辑。
-
-复制 `public/video-v43.js`、`public/video-v43.css` 到 public。admin.html 的 head 加：
-```html
-<link rel="stylesheet" href="/video-v43.css">
-```
-
-原 tab 映射中的 videos 改成：
+改为：
 ```js
-videos: window.loadVideosV43
+`<img src="/media/${esc(x.image_key)}" style="object-position:${Number(x.image_position_x)||50}% ${Number(x.image_position_y)||50}%" alt="${esc(x.title)}">`
 ```
+注意：后台滑块只是保存和预览。前台必须加入这段 `object-position` 才会实际生效。
 
-## 5. 图片焦点
-按照 `IMAGE_POSITION_INTEGRATION.md` 接入分类、Hero、新闻和产品图片。数据库迁移已准备相应字段。
-
-## 6. 版本号
-package.json 修改为：
-```json
-{"name":"smusu-cms-v43","version":"4.3.0","private":true,"scripts":{"dev":"wrangler dev","deploy":"wrangler deploy"},"devDependencies":{"wrangler":"^4.2.0"}}
+## 五、部署
+```bash
+npm run deploy
 ```
+部署后打开：
+- `https://admin.ufya.tech/admin-v432.js`
+- `https://admin.ufya.tech/admin-v432.css`
 
-## 7. 验收
-- 新建视频必须选择文件。
-- 编辑标题/状态时不重新上传视频。
-- 可替换视频及封面。
-- 删除仅删除 D1 记录，R2 对象保留。
-- 前台 `/videos/` 可播放已发布视频。
-- 分类、Hero、新闻和产品图可调整焦点，刷新后保持。
+确认不是 404，然后按 `Ctrl+Shift+R` 强制刷新。
 
-注意：当前 R2 读取函数未实现 Range 响应优化。小中型 MP4 可播放，但大型视频拖动进度条可能不理想。后续建议增加 Range 支持或改成直传/流媒体方案。
+## 六、验收
+1. Hero 编辑区出现“水平位置”和“垂直位置”两个滑块。
+2. 拖动滑块时后台预览立即移动。
+3. 保存 Hero 后刷新后台，位置仍然保留。
+4. 刷新前台，Hero 按相同位置显示。
+5. 视频列表每条记录出现“编辑”和“删除”。
+6. 编辑时可以修改标题、Slug、描述、状态和排序，也可替换视频和封面。
+7. 删除后 D1 占位消失，并尝试清理 R2 对象。
