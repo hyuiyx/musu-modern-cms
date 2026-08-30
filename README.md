@@ -1,13 +1,5 @@
-# SMUSU CMS V5.0 首页覆盖包
+# SMUSU CMS V5.1 完整覆盖包
 
-先确保 GitHub 已经是 V4.6.2。将本包内 `public`、`tools`、`package.json` 复制到仓库根目录并覆盖。保留原 `wrangler.jsonc`、`public/admin.*` 和数据库数据。
+覆盖 GitHub 中同名文件，但保留现有 `wrangler.jsonc`。部署命令使用 `npm run deploy`。首次打开后台“公司资料”会自动创建公司资料表。
 
-Cloudflare Workers Builds 的 Deploy command 设置为：
-
-```bash
-npm run deploy
-```
-
-部署脚本会在部署前把当前 `src/index.js` 的 `shell()`、`media()`、`home()` 替换为 V5.0 首页，其余产品、分类、新闻、案例、视频、询盘和后台 API 保持不变。
-
-部署后先打开 `https://staging.ufya.tech/site.css`，确认返回新 CSS，再按 Ctrl+Shift+R 强制刷新首页。
+重要：如果现有 V5.0 `site.css` 已经满意，请不要覆盖 `public/site.css`，只把 `public/site-v51.css` 放入 public，并在现有 site.css 最后增加 `@import url("/site-v51.css");`。

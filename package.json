@@ -1,1 +1,12 @@
-{"name":"smusu-cms-v50","version":"5.0.0","private":true,"scripts":{"upgrade":"node tools/apply-v5.mjs","dev":"npm run upgrade && wrangler dev","deploy":"npm run upgrade && wrangler deploy"},"devDependencies":{"wrangler":"^4.2.0"}}
+{
+  "name": "smusu-cms-v51",
+  "version": "5.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.2.0"
+  }
+}

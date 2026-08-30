@@ -1,0 +1,1 @@
+-- Tables are created automatically by src/company.js using CREATE TABLE IF NOT EXISTS.
