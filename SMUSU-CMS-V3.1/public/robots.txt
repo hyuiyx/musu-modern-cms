@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap: https://staging.ufya.tech/sitemap.xml
