@@ -1,20 +1,13 @@
-# SMUSU Modern CMS V2.1
+# SMUSU CMS V2.2A
 
-This V2 replaces the original Worker routing code while reusing the existing Cloudflare resources.
+Minimal product-management upgrade. Reuses existing Cloudflare Worker, `musu-db` D1 database and `smusu-media` R2 bucket.
 
-## Existing bindings
-- D1: `musu-db`
-- R2: `smusu-media`
-- Test site: `https://staging.ufya.tech`
-- Test admin: `https://admin.ufya.tech`
+Features:
+- product category selection
+- create/update products
+- product image upload directly to R2 with automatic `product_images` association
+- gallery preview, set primary image, delete image from R2 + D1
+- product specification add/delete
+- public product list/details render images/specifications automatically
 
-## Upgrade from V1
-1. Keep your existing D1 and R2. Do not delete them.
-2. Upload/overwrite these V2 files in the existing GitHub repository.
-3. Commit to `main`; Cloudflare Workers Builds will deploy automatically.
-4. Test the workers.dev URL first.
-5. Add Custom Domains only after workers.dev works.
-6. Protect `admin.ufya.tech` with Cloudflare Access before using the admin UI.
-
-## Notes
-The CMS V2 includes Products and R2 media upload UI. The database schema already supports categories, specifications, news, cases, videos, pages, redirects and inquiries; additional admin editors can be layered on without changing the public routing architecture.
+Upload these files over the existing GitHub repository and commit to `main`. Do not recreate D1 or R2.

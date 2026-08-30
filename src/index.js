@@ -1,182 +1,63 @@
-const H={'content-type':'text/html; charset=utf-8'};
-const E=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const J=(v,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
-const slugify=(v='')=>String(v).toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-async function rows(db,sql,...args){return (await db.prepare(sql).bind(...args).all()).results||[]}
-async function one(db,sql,...args){return await db.prepare(sql).bind(...args).first()}
-async function cfg(env){return Object.fromEntries((await rows(env.DB,'SELECT key,value FROM settings')).map(x=>[x.key,x.value]))}
-function shell({title='SMUSU',desc='',canonical='',body='',settings={}}){return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${E(title)}</title><meta name="description" content="${E(desc)}"><link rel="canonical" href="${E(canonical)}"><link rel="stylesheet" href="/site.css"></head><body><div class="top"><div class="wrap"><span>Welcome to Shunmu Technology</span><span>${E(settings.phone||'')}</span></div></div><header><div class="wrap nav"><a class="logo" href="/">SMUSU</a><nav><a href="/">Home</a><a href="/about/">About</a><a href="/products/">Products</a><a href="/news/">News</a><a href="/cases/">Cases</a><a href="/videos/">Videos</a><a href="/contact/">Contact</a></nav></div></header>${body}<footer><div class="wrap foot"><div><b class="logo">SMUSU</b><p>Professional diamond tools for global B2B customers.</p></div><div><b>Products</b><p>Cutting · Polishing · Profiling<br>Drilling · Grinding · Hand Tools</p></div><div><b>Contact</b><p>${E(settings.email||'')}<br>${E(settings.phone||'')}<br>${E(settings.address||'')}</p></div></div></footer></body></html>`,{headers:H})}
-function mediaCard(img,label){return `<div class="media">${img?`<img src="/media/${E(img)}" alt="${E(label)}" loading="lazy">`:`<span>${E(label)}</span>`}</div>`}
-async function home(env){const s=await cfg(env),p=await one(env.DB,"SELECT * FROM pages WHERE page_key='home'"),a=await one(env.DB,"SELECT * FROM pages WHERE page_key='about'"),cats=await rows(env.DB,"SELECT * FROM categories WHERE status='published' ORDER BY sort_order,id LIMIT 6"),prods=await rows(env.DB,"SELECT p.*,(SELECT object_key FROM product_images i WHERE i.product_id=p.id ORDER BY is_primary DESC,sort_order,id LIMIT 1) image FROM products p WHERE p.status='published' ORDER BY featured DESC,id DESC LIMIT 6"),cases=await rows(env.DB,"SELECT * FROM posts WHERE type='case' AND status='published' ORDER BY id DESC LIMIT 3"),news=await rows(env.DB,"SELECT * FROM posts WHERE type='news' AND status='published' ORDER BY id DESC LIMIT 3");let body=`<section class="hero"><div class="wrap heroGrid"><div><div class="kicker">SHUNMU TECHNOLOGY · SUZHOU</div><h1>${E(p?.title||'Engineered for the Cut. Built for the Finish.')}</h1><p>${E(p?.subtitle||'Professional diamond tools for stone, concrete and advanced surfaces.')}</p><a class="btn" href="/products/">Explore Products</a><a class="btn light" href="/contact/">Request a Quote</a></div><div class="heroVisual"><div class="blade"></div><b>PRECISION / DURABILITY / PRODUCTIVITY</b></div></div></section>`;
-body+=`<section><div class="wrap"><div class="sectionHead"><div><div class="kicker orange">PRODUCT FAMILIES</div><h2>Tools built around the application</h2></div><p>Cutting, polishing, profiling, drilling, grinding and professional hand tools.</p></div><div class="grid">${cats.map(c=>`<a class="card" href="/products/?category=${E(c.slug)}">${mediaCard(c.image_key,c.name)}<div class="cardBody"><h3>${E(c.name)}</h3><p>${E(c.description||'Professional tools for demanding applications.')}</p></div></a>`).join('')}</div></div></section>`;
-body+=`<section class="soft"><div class="wrap"><div class="sectionHead"><div><div class="kicker orange">FEATURED PRODUCTS</div><h2>Professional tools, clearer presentation</h2></div><a class="btn" href="/products/">View All</a></div><div class="grid">${prods.length?prods.map(x=>`<a class="card" href="/products/${E(x.slug)}/">${mediaCard(x.image,x.name)}<div class="cardBody"><h3>${E(x.name)}</h3><p>${E(x.summary)}</p></div></a>`).join(''):'<div class="empty">Products published in CMS will appear here.</div>'}</div></div></section>`;
-body+=`<section><div class="wrap split"><div class="factory">SHUNMU<br>TECHNOLOGY</div><div><div class="kicker orange">COMPANY PROFILE</div><h2>Diamond tool expertise for global customers</h2><p>${E(a?.content||'Professional diamond tool solutions and long-term cooperation.')}</p><a class="btn" href="/about/">About SMUSU</a></div></div></section>`;
-body+=`<section class="soft"><div class="wrap"><div class="sectionHead"><div><div class="kicker orange">APPLICATIONS</div><h2>Cases & field use</h2></div></div><div class="grid">${cases.length?cases.map(x=>`<article class="card">${mediaCard(x.cover_key,x.title)}<div class="cardBody"><h3>${E(x.title)}</h3><p>${E(x.summary)}</p></div></article>`).join(''):'<div class="empty">Cases will appear here after migration.</div>'}</div></div></section>`;
-body+=`<section><div class="wrap"><div class="sectionHead"><div><div class="kicker orange">NEWS</div><h2>Updates from SMUSU</h2></div></div><div class="grid">${news.length?news.map(x=>`<article class="card"><div class="cardBody"><h3>${E(x.title)}</h3><p>${E(x.summary)}</p></div></article>`).join(''):'<div class="empty">News will appear here after migration.</div>'}</div></div></section>`;
-return shell({title:'SMUSU | Professional Diamond Tools',desc:p?.content||'',canonical:env.SITE_URL+'/',body,settings:s})}
-async function products(env,url){const s=await cfg(env),cat=url.searchParams.get('category');let data;if(cat)data=await rows(env.DB,"SELECT p.*,c.name category,(SELECT object_key FROM product_images i WHERE i.product_id=p.id ORDER BY is_primary DESC,sort_order,id LIMIT 1) image FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.status='published' AND c.slug=? ORDER BY p.id DESC",cat);else data=await rows(env.DB,"SELECT p.*,c.name category,(SELECT object_key FROM product_images i WHERE i.product_id=p.id ORDER BY is_primary DESC,sort_order,id LIMIT 1) image FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.status='published' ORDER BY p.id DESC");const body=`<section class="pageHero"><div class="wrap"><div class="kicker orange">PRODUCT CENTER</div><h1>Diamond Tools</h1><p>Explore professional cutting, polishing, profiling, drilling and grinding solutions.</p></div></section><section><div class="wrap"><div class="grid">${data.length?data.map(x=>`<a class="card" href="/products/${E(x.slug)}/">${mediaCard(x.image,x.name)}<div class="cardBody"><small>${E(x.category||'SMUSU')}</small><h3>${E(x.name)}</h3><p>${E(x.summary)}</p></div></a>`).join(''):'<div class="empty">No published products yet.</div>'}</div></div></section>`;return shell({title:'Products | SMUSU',desc:'Professional diamond tools by SMUSU.',canonical:env.SITE_URL+'/products/',body,settings:s})}
-async function product(env,slug){const s=await cfg(env),p=await one(env.DB,"SELECT p.*,c.name category FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.slug=? AND p.status='published'",slug);if(!p)return new Response('Not Found',{status:404});const ims=await rows(env.DB,'SELECT * FROM product_images WHERE product_id=? ORDER BY is_primary DESC,sort_order,id',p.id),spec=await rows(env.DB,'SELECT * FROM product_specs WHERE product_id=? ORDER BY sort_order,id',p.id);const body=`<main class="wrap product"><p class="crumb">Home / Products / ${E(p.category||'')}</p><div class="productGrid"><div class="gallery">${ims.length?ims.map(x=>mediaCard(x.object_key,x.alt_text||p.name)).join(''):mediaCard('',p.name)}</div><div><div class="kicker orange">${E(p.category||'DIAMOND TOOLS')}</div><h1>${E(p.name)}</h1><p class="lead">${E(p.summary)}</p><div class="copy">${E(p.description).replace(/\n/g,'<br>')}</div><a class="btn" href="/contact/?product=${encodeURIComponent(p.name)}">Request a Quote</a></div></div><section><h2>Specifications</h2><table>${spec.length?spec.map(x=>`<tr><th>${E(x.name)}</th><td>${E(x.value)}</td></tr>`).join(''):'<tr><td>Specifications can be added from the CMS.</td></tr>'}</table></section></main>`;return shell({title:p.seo_title||`${p.name} | SMUSU`,desc:p.seo_description||p.summary,canonical:`${env.SITE_URL}/products/${p.slug}/`,body,settings:s})}
-async function basic(env,key){const s=await cfg(env),p=await one(env.DB,'SELECT * FROM pages WHERE page_key=?',key);const contact=key==='contact'?`<div class="contactBox"><h2>Contact Us</h2><p>Email: ${E(s.email||'')}</p><p>Phone / WhatsApp: ${E(s.phone||'')}</p><p>${E(s.address||'')}</p></div>`:'';return shell({title:p?.seo_title||`${p?.title||key} | SMUSU`,desc:p?.seo_description||p?.subtitle||'',canonical:`${env.SITE_URL}/${key}/`,body:`<section class="pageHero"><div class="wrap"><div class="kicker orange">SMUSU</div><h1>${E(p?.title||key)}</h1><p>${E(p?.subtitle||'')}</p></div></section><section><div class="wrap copy"><p>${E(p?.content||'').replace(/\n/g,'<br>')}</p>${contact}</div></section>`,settings:s})}
-async function listPosts(env,type){const s=await cfg(env),items=await rows(env.DB,"SELECT * FROM posts WHERE type=? AND status='published' ORDER BY id DESC",type),name=type==='case'?'Cases':'News';return shell({title:`${name} | SMUSU`,desc:`SMUSU ${name}`,canonical:`${env.SITE_URL}/${name.toLowerCase()}/`,body:`<section class="pageHero"><div class="wrap"><h1>${name}</h1></div></section><section><div class="wrap"><div class="grid">${items.length?items.map(x=>`<article class="card">${mediaCard(x.cover_key,x.title)}<div class="cardBody"><h3>${E(x.title)}</h3><p>${E(x.summary)}</p></div></article>`).join(''):'<div class="empty">Content will appear here after migration.</div>'}</div></div></section>`,settings:s})}
-async function videos(env){const s=await cfg(env),items=await rows(env.DB,"SELECT * FROM videos WHERE status='published' ORDER BY id DESC");return shell({title:'Videos | SMUSU',desc:'SMUSU product and application videos.',canonical:env.SITE_URL+'/videos/',body:`<section class="pageHero"><div class="wrap"><h1>Videos</h1></div></section><section><div class="wrap"><div class="grid">${items.length?items.map(x=>`<article class="card"><div class="media">${x.video_key?`<video controls preload="metadata" ${x.poster_key?`poster="/media/${E(x.poster_key)}"`:''}><source src="/media/${E(x.video_key)}" type="video/mp4"></video>`:'VIDEO'}</div><div class="cardBody"><h3>${E(x.title)}</h3><p>${E(x.description)}</p></div></article>`).join(''):'<div class="empty">Videos will appear here after migration.</div>'}</div></div></section>`,settings:s})}
-async function media(req,env){const key=decodeURIComponent(new URL(req.url).pathname.slice(7));if(!key)return new Response('Not Found',{status:404});const o=await env.MEDIA.get(key);if(!o)return new Response('Not Found',{status:404});const h=new Headers();o.writeHttpMetadata(h);h.set('etag',o.httpEtag);h.set('cache-control','public,max-age=31536000,immutable');return new Response(req.method==='HEAD'?null:o.body,{headers:h})}
-async function api(req,env){const u=new URL(req.url);if(u.hostname!==env.ADMIN_HOST)return J({error:'Forbidden'},403);if(u.pathname==='/api/admin/products'&&req.method==='GET')return J(await rows(env.DB,'SELECT * FROM products ORDER BY id DESC'));if(u.pathname==='/api/admin/products'&&req.method==='POST'){const b=await req.json(),name=String(b.name||'').trim(),slug=slugify(b.slug||name);if(!name||!slug)return J({error:'Name required'},400);const x=await env.DB.prepare('INSERT INTO products(name,slug,summary,description,status,seo_title,seo_description,updated_at) VALUES(?,?,?,?,?,?,?,?)').bind(name,slug,b.summary||'',b.description||'',b.status||'draft',b.seo_title||'',b.seo_description||'',new Date().toISOString()).run();return J({success:true,id:x.meta.last_row_id})}const pm=u.pathname.match(/^\/api\/admin\/products\/(\d+)$/);if(pm&&req.method==='PUT'){const b=await req.json();await env.DB.prepare('UPDATE products SET name=?,slug=?,summary=?,description=?,status=?,seo_title=?,seo_description=?,updated_at=? WHERE id=?').bind(b.name,slugify(b.slug||b.name),b.summary||'',b.description||'',b.status||'draft',b.seo_title||'',b.seo_description||'',new Date().toISOString(),Number(pm[1])).run();return J({success:true})}if(u.pathname==='/api/admin/media'&&req.method==='POST'){const fd=await req.formData(),f=fd.get('file');if(!f||typeof f==='string')return J({error:'No file'},400);const ok=['image/jpeg','image/png','image/webp','image/gif','video/mp4','application/pdf'];if(!ok.includes(f.type))return J({error:'Unsupported file type'},400);const ext=(f.name.split('.').pop()||'bin').replace(/[^a-z0-9]/gi,'').toLowerCase(),kind=f.type.startsWith('image/')?'images':f.type.startsWith('video/')?'videos':'documents',key=`${kind}/${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}.${ext}`;await env.MEDIA.put(key,f.stream(),{httpMetadata:{contentType:f.type}});return J({success:true,key,url:`/media/${key}`})}return J({error:'Not Found'},404)}
-async function sitemap(env){const p=await rows(env.DB,"SELECT slug,updated_at FROM products WHERE status='published' ORDER BY id");const xml=`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${E(env.SITE_URL)}/</loc></url>${p.map(x=>`<url><loc>${E(env.SITE_URL)}/products/${E(x.slug)}/</loc><lastmod>${E(x.updated_at)}</lastmod></url>`).join('')}</urlset>`;return new Response(xml,{headers:{'content-type':'application/xml; charset=utf-8'}})}
-async function app(req, env) {
-  const u = new URL(req.url);
-
-  // --------------------------
-  // Static Assets
-  // --------------------------
-
-  if (
-    u.pathname === "/site.css" ||
-    u.pathname === "/admin.css" ||
-    u.pathname === "/admin.js" ||
-    u.pathname === "/robots.txt"
-  ) {
-    return await env.ASSETS.fetch(req);
+const HTML = { "content-type": "text/html; charset=utf-8" };
+const esc = (v = "") => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+const slugify = (v = "") => String(v).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+async function rows(db, sql, ...args) { return (await db.prepare(sql).bind(...args).all()).results || []; }
+async function one(db, sql, ...args) { return await db.prepare(sql).bind(...args).first(); }
+async function settings(env) { return Object.fromEntries((await rows(env.DB, "SELECT key,value FROM settings")).map(x => [x.key, x.value])); }
+function shell({ title="SMUSU", desc="", canonical="", body="", cfg={} }) {
+  return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><meta name="description" content="${esc(desc)}"><link rel="canonical" href="${esc(canonical)}"><link rel="stylesheet" href="/site.css"></head><body><div class="top"><div class="wrap"><span>Welcome to Shunmu Technology</span><span>${esc(cfg.phone||"")}</span></div></div><header><div class="wrap nav"><a class="logo" href="/">SMUSU</a><nav><a href="/">Home</a><a href="/about/">About</a><a href="/products/">Products</a><a href="/news/">News</a><a href="/cases/">Cases</a><a href="/videos/">Videos</a><a href="/contact/">Contact</a></nav></div></header>${body}<footer><div class="wrap foot"><div><b class="logo">SMUSU</b><p>Professional diamond tools for global B2B customers.</p></div><div><b>Products</b><p>Cutting · Polishing · Profiling<br>Drilling · Grinding · Hand Tools</p></div><div><b>Contact</b><p>${esc(cfg.email||"")}<br>${esc(cfg.phone||"")}<br>${esc(cfg.address||"")}</p></div></div></footer></body></html>`, { headers: HTML });
+}
+function mediaCard(key, alt) { return `<div class="media">${key ? `<img src="/media/${esc(key)}" alt="${esc(alt)}" loading="lazy">` : `<span>${esc(alt)}</span>`}</div>`; }
+async function home(env) {
+  const cfg=await settings(env), p=await one(env.DB,"SELECT * FROM pages WHERE page_key='home'"), about=await one(env.DB,"SELECT * FROM pages WHERE page_key='about'");
+  const cats=await rows(env.DB,"SELECT * FROM categories WHERE status='published' ORDER BY sort_order,id LIMIT 6");
+  const products=await rows(env.DB,"SELECT p.*,c.name category,(SELECT object_key FROM product_images i WHERE i.product_id=p.id ORDER BY is_primary DESC,sort_order,id LIMIT 1) image FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.status='published' ORDER BY featured DESC,id DESC LIMIT 6");
+  const body=`<section class="hero"><div class="wrap heroGrid"><div><div class="kicker">SHUNMU TECHNOLOGY · SUZHOU</div><h1>${esc(p?.title||"Engineered for the Cut. Built for the Finish.")}</h1><p>${esc(p?.subtitle||"")}</p><a class="btn" href="/products/">Explore Products</a><a class="btn light" href="/contact/">Request a Quote</a></div><div class="heroVisual"><div class="blade"></div><b>PRECISION / DURABILITY / PRODUCTIVITY</b></div></div></section><section><div class="wrap"><div class="sectionHead"><div><div class="kicker orange">PRODUCT FAMILIES</div><h2>Tools built around the application</h2></div></div><div class="grid">${cats.map(c=>`<a class="card" href="/products/?category=${esc(c.slug)}">${mediaCard(c.image_key,c.name)}<div class="cardBody"><h3>${esc(c.name)}</h3><p>${esc(c.description||"Professional tools for demanding applications.")}</p></div></a>`).join("")}</div></div></section><section class="soft"><div class="wrap"><div class="sectionHead"><div><div class="kicker orange">FEATURED PRODUCTS</div><h2>Professional tools, clearer presentation</h2></div></div><div class="grid">${products.length?products.map(x=>`<a class="card" href="/products/${esc(x.slug)}/">${mediaCard(x.image,x.name)}<div class="cardBody"><small>${esc(x.category||"SMUSU")}</small><h3>${esc(x.name)}</h3><p>${esc(x.summary)}</p></div></a>`).join(""):'<div class="empty">Products published in CMS will appear here.</div>'}</div></div></section><section><div class="wrap split"><div class="factory">SHUNMU<br>TECHNOLOGY</div><div><div class="kicker orange">COMPANY PROFILE</div><h2>Diamond tool expertise for global customers</h2><p>${esc(about?.content||"")}</p><a class="btn" href="/about/">About SMUSU</a></div></div></section>`;
+  return shell({title:"SMUSU | Professional Diamond Tools",desc:p?.content||"",canonical:env.SITE_URL+"/",body,cfg});
+}
+async function productList(env,u) {
+  const cfg=await settings(env), cat=u.searchParams.get("category");
+  const sql=`SELECT p.*,c.name category,(SELECT object_key FROM product_images i WHERE i.product_id=p.id ORDER BY is_primary DESC,sort_order,id LIMIT 1) image FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.status='published' ${cat?"AND c.slug=?":""} ORDER BY p.id DESC`;
+  const data=cat?await rows(env.DB,sql,cat):await rows(env.DB,sql);
+  return shell({title:"Products | SMUSU",desc:"Professional diamond tools.",canonical:env.SITE_URL+"/products/",cfg,body:`<section class="pageHero"><div class="wrap"><div class="kicker orange">PRODUCT CENTER</div><h1>Diamond Tools</h1></div></section><section><div class="wrap"><div class="grid">${data.map(x=>`<a class="card" href="/products/${esc(x.slug)}/">${mediaCard(x.image,x.name)}<div class="cardBody"><small>${esc(x.category||"SMUSU")}</small><h3>${esc(x.name)}</h3><p>${esc(x.summary)}</p></div></a>`).join("")||'<div class="empty">No published products yet.</div>'}</div></div></section>`});
+}
+async function productPage(env, slug) {
+  const cfg=await settings(env), p=await one(env.DB,"SELECT p.*,c.name category FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.slug=? AND p.status='published'",slug);
+  if(!p) return new Response("Not Found",{status:404});
+  const images=await rows(env.DB,"SELECT * FROM product_images WHERE product_id=? ORDER BY is_primary DESC,sort_order,id",p.id), specs=await rows(env.DB,"SELECT * FROM product_specs WHERE product_id=? ORDER BY sort_order,id",p.id);
+  return shell({title:p.seo_title||`${p.name} | SMUSU`,desc:p.seo_description||p.summary,canonical:`${env.SITE_URL}/products/${p.slug}/`,cfg,body:`<main class="wrap product"><p class="crumb">Home / Products / ${esc(p.category||"")}</p><div class="productGrid"><div class="gallery">${images.length?images.map(i=>mediaCard(i.object_key,i.alt_text||p.name)).join(""):mediaCard("",p.name)}</div><div><div class="kicker orange">${esc(p.category||"DIAMOND TOOLS")}</div><h1>${esc(p.name)}</h1><p class="lead">${esc(p.summary)}</p><div class="copy">${esc(p.description).replace(/\n/g,"<br>")}</div><a class="btn" href="/contact/?product=${encodeURIComponent(p.name)}">Request a Quote</a></div></div><section><h2>Specifications</h2><table>${specs.length?specs.map(s=>`<tr><th>${esc(s.name)}</th><td>${esc(s.value)}</td></tr>`).join(""):'<tr><td>No specifications yet.</td></tr>'}</table></section></main>`});
+}
+async function basic(env,key){const cfg=await settings(env),p=await one(env.DB,"SELECT * FROM pages WHERE page_key=?",key);return shell({title:`${p?.title||key} | SMUSU`,desc:p?.subtitle||"",canonical:`${env.SITE_URL}/${key}/`,cfg,body:`<section class="pageHero"><div class="wrap"><h1>${esc(p?.title||key)}</h1><p>${esc(p?.subtitle||"")}</p></div></section><section><div class="wrap copy"><p>${esc(p?.content||"").replace(/\n/g,"<br>")}</p>${key==="contact"?`<div class="contactBox"><p>${esc(cfg.email||"")}<br>${esc(cfg.phone||"")}<br>${esc(cfg.address||"")}</p></div>`:""}</div></section>`});}
+async function media(req,env){const key=decodeURIComponent(new URL(req.url).pathname.slice(7));const o=await env.MEDIA.get(key);if(!o)return new Response("Not Found",{status:404});const h=new Headers();o.writeHttpMetadata(h);h.set("etag",o.httpEtag);h.set("cache-control","public,max-age=31536000,immutable");return new Response(req.method==="HEAD"?null:o.body,{headers:h});}
+async function api(req,env){
+  const u=new URL(req.url); if(u.hostname!==env.ADMIN_HOST)return json({error:"Forbidden"},403);
+  if(u.pathname==="/api/admin/categories"&&req.method==="GET")return json(await rows(env.DB,"SELECT id,name,slug FROM categories WHERE status='published' ORDER BY sort_order,id"));
+  if(u.pathname==="/api/admin/products"&&req.method==="GET")return json(await rows(env.DB,"SELECT * FROM products ORDER BY id DESC"));
+  if(u.pathname==="/api/admin/products"&&req.method==="POST"){
+    const b=await req.json(), name=String(b.name||"").trim(), slug=slugify(b.slug||name); if(!name||!slug)return json({error:"Name required"},400);
+    const r=await env.DB.prepare("INSERT INTO products(name,slug,category_id,summary,description,status,seo_title,seo_description,updated_at) VALUES(?,?,?,?,?,?,?,?,?)").bind(name,slug,b.category_id||null,b.summary||"",b.description||"",b.status||"draft",b.seo_title||"",b.seo_description||"",new Date().toISOString()).run();return json({success:true,id:r.meta.last_row_id});
   }
-
-
-  // --------------------------
-  // R2 Media
-  // --------------------------
-
-  if (u.pathname.startsWith("/media/")) {
-    return await media(req, env);
+  const pm=u.pathname.match(/^\/api\/admin\/products\/(\d+)$/);
+  if(pm&&req.method==="PUT"){const b=await req.json();await env.DB.prepare("UPDATE products SET name=?,slug=?,category_id=?,summary=?,description=?,status=?,seo_title=?,seo_description=?,updated_at=? WHERE id=?").bind(b.name,slugify(b.slug||b.name),b.category_id||null,b.summary||"",b.description||"",b.status||"draft",b.seo_title||"",b.seo_description||"",new Date().toISOString(),Number(pm[1])).run();return json({success:true});}
+  const im=u.pathname.match(/^\/api\/admin\/products\/(\d+)\/images$/);
+  if(im&&req.method==="GET")return json(await rows(env.DB,"SELECT * FROM product_images WHERE product_id=? ORDER BY is_primary DESC,sort_order,id",Number(im[1])));
+  if(im&&req.method==="POST"){
+    const productId=Number(im[1]), product=await one(env.DB,"SELECT id,name FROM products WHERE id=?",productId);if(!product)return json({error:"Product not found"},404);
+    const fd=await req.formData(), f=fd.get("file");if(!f||typeof f==="string")return json({error:"No file"},400);if(!["image/jpeg","image/png","image/webp","image/gif"].includes(f.type))return json({error:"Unsupported image type"},400);
+    const ext=(f.name.split(".").pop()||"jpg").replace(/[^a-z0-9]/gi,"").toLowerCase(), key=`products/${productId}/${crypto.randomUUID()}.${ext}`;await env.MEDIA.put(key,f.stream(),{httpMetadata:{contentType:f.type}});
+    const c=await one(env.DB,"SELECT COUNT(*) total FROM product_images WHERE product_id=?",productId), primary=Number(c.total)===0?1:0;const r=await env.DB.prepare("INSERT INTO product_images(product_id,object_key,alt_text,sort_order,is_primary) VALUES(?,?,?,?,?)").bind(productId,key,product.name,Number(c.total)+1,primary).run();return json({success:true,id:r.meta.last_row_id,key,is_primary:primary});
   }
-
-
-  // --------------------------
-  // API
-  // --------------------------
-
-  if (u.pathname.startsWith("/api/")) {
-    return await api(req, env);
-  }
-
-
-  // --------------------------
-  // Admin
-  // --------------------------
-
-  if (u.hostname === env.ADMIN_HOST) {
-
-    // 后台根目录和 /admin 都返回 admin.html
-    if (
-      u.pathname === "/" ||
-      u.pathname === "/admin" ||
-      u.pathname === "/admin/"
-    ) {
-
-      const assetUrl = new URL(
-        "/admin.html",
-        req.url
-      );
-
-      return await env.ASSETS.fetch(
-        new Request(
-          assetUrl.toString(),
-          {
-            method: "GET",
-            headers: req.headers
-          }
-        )
-      );
-    }
-
-    return new Response(
-      "Not Found",
-      {
-        status: 404
-      }
-    );
-  }
-
-
-  // --------------------------
-  // Legacy redirects
-  // --------------------------
-
-  const rd = await one(
-    env.DB,
-    "SELECT new_path,status_code FROM redirects WHERE old_path=?",
-    u.pathname
-  );
-
-  if (rd) {
-    return Response.redirect(
-      `${env.SITE_URL}${rd.new_path}`,
-      rd.status_code || 301
-    );
-  }
-
-
-  // --------------------------
-  // Website
-  // --------------------------
-
-  if (u.pathname === "/") {
-    return await home(env);
-  }
-
-  if (/^\/products\/?$/.test(u.pathname)) {
-    return await products(env, u);
-  }
-
-  const pm =
-    u.pathname.match(
-      /^\/products\/([^/]+)\/?$/
-    );
-
-  if (pm) {
-    return await product(
-      env,
-      decodeURIComponent(pm[1])
-    );
-  }
-
-  if (/^\/about\/?$/.test(u.pathname)) {
-    return await basic(
-      env,
-      "about"
-    );
-  }
-
-  if (/^\/contact\/?$/.test(u.pathname)) {
-    return await basic(
-      env,
-      "contact"
-    );
-  }
-
-  if (/^\/news\/?$/.test(u.pathname)) {
-    return await listPosts(
-      env,
-      "news"
-    );
-  }
-
-  if (/^\/cases\/?$/.test(u.pathname)) {
-    return await listPosts(
-      env,
-      "case"
-    );
-  }
-
-  if (/^\/videos\/?$/.test(u.pathname)) {
-    return await videos(env);
-  }
-
-  if (u.pathname === "/sitemap.xml") {
-    return await sitemap(env);
-  }
-
-  return new Response(
-    "Not Found",
-    {
-      status: 404
-    }
-  );
-}export default {async fetch(req,env,ctx){try{const res=await app(req,env);if(!(res instanceof Response))throw new TypeError('Route did not return Response');return res}catch(err){console.error('SMUSU_V2_ERROR',err?.stack||err?.message||String(err));return new Response(`SMUSU V2 Error\n${err?.message||String(err)}`,{status:500,headers:{'content-type':'text/plain; charset=utf-8'}})}}};
+  const primary=u.pathname.match(/^\/api\/admin\/products\/(\d+)\/images\/(\d+)\/primary$/);
+  if(primary&&req.method==="PUT"){const pid=Number(primary[1]),iid=Number(primary[2]);await env.DB.batch([env.DB.prepare("UPDATE product_images SET is_primary=0 WHERE product_id=?").bind(pid),env.DB.prepare("UPDATE product_images SET is_primary=1 WHERE id=? AND product_id=?").bind(iid,pid)]);return json({success:true});}
+  const di=u.pathname.match(/^\/api\/admin\/products\/(\d+)\/images\/(\d+)$/);
+  if(di&&req.method==="DELETE"){const pid=Number(di[1]),iid=Number(di[2]),image=await one(env.DB,"SELECT * FROM product_images WHERE id=? AND product_id=?",iid,pid);if(!image)return json({error:"Image not found"},404);await env.MEDIA.delete(image.object_key);await env.DB.prepare("DELETE FROM product_images WHERE id=?").bind(iid).run();return json({success:true});}
+  const sm=u.pathname.match(/^\/api\/admin\/products\/(\d+)\/specs$/);
+  if(sm&&req.method==="GET")return json(await rows(env.DB,"SELECT * FROM product_specs WHERE product_id=? ORDER BY sort_order,id",Number(sm[1])));
+  if(sm&&req.method==="POST"){const pid=Number(sm[1]),b=await req.json(),name=String(b.name||"").trim(),value=String(b.value||"").trim();if(!name||!value)return json({error:"Name and value required"},400);const c=await one(env.DB,"SELECT COUNT(*) total FROM product_specs WHERE product_id=?",pid),r=await env.DB.prepare("INSERT INTO product_specs(product_id,name,value,sort_order) VALUES(?,?,?,?)").bind(pid,name,value,Number(c.total)+1).run();return json({success:true,id:r.meta.last_row_id});}
+  const ds=u.pathname.match(/^\/api\/admin\/products\/(\d+)\/specs\/(\d+)$/);
+  if(ds&&req.method==="DELETE"){await env.DB.prepare("DELETE FROM product_specs WHERE id=? AND product_id=?").bind(Number(ds[2]),Number(ds[1])).run();return json({success:true});}
+  return json({error:"Not Found"},404);
+}
+async function app(req,env){const u=new URL(req.url);if(["/site.css","/admin.css","/admin.js","/robots.txt"].includes(u.pathname))return env.ASSETS.fetch(req);if(u.pathname.startsWith("/media/"))return media(req,env);if(u.pathname.startsWith("/api/"))return api(req,env);if(u.hostname===env.ADMIN_HOST){if(["/","/admin","/admin/","/admin.html"].includes(u.pathname)){const au=new URL("/admin.html",req.url);return env.ASSETS.fetch(new Request(au.toString(),{method:"GET",headers:req.headers}));}return new Response("Not Found",{status:404});}const rd=await one(env.DB,"SELECT new_path,status_code FROM redirects WHERE old_path=?",u.pathname);if(rd)return Response.redirect(`${env.SITE_URL}${rd.new_path}`,rd.status_code||301);if(u.pathname==="/")return home(env);if(/^\/products\/?$/.test(u.pathname))return productList(env,u);const p=u.pathname.match(/^\/products\/([^/]+)\/?$/);if(p)return productPage(env,decodeURIComponent(p[1]));if(/^\/about\/?$/.test(u.pathname))return basic(env,"about");if(/^\/contact\/?$/.test(u.pathname))return basic(env,"contact");if(u.pathname==="/sitemap.xml")return new Response("<?xml version=\"1.0\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"></urlset>",{headers:{"content-type":"application/xml"}});return new Response("Not Found",{status:404});}
+export default{async fetch(req,env,ctx){try{return await app(req,env)}catch(err){console.error("SMUSU_V22A",err?.stack||err?.message||String(err));return new Response(`SMUSU V2.2A Error\n${err?.message||String(err)}`,{status:500,headers:{"content-type":"text/plain; charset=utf-8"}})}}};
