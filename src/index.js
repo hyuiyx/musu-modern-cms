@@ -22,12 +22,161 @@ async function videos(env){const s=await cfg(env),items=await rows(env.DB,"SELEC
 async function media(req,env){const key=decodeURIComponent(new URL(req.url).pathname.slice(7));if(!key)return new Response('Not Found',{status:404});const o=await env.MEDIA.get(key);if(!o)return new Response('Not Found',{status:404});const h=new Headers();o.writeHttpMetadata(h);h.set('etag',o.httpEtag);h.set('cache-control','public,max-age=31536000,immutable');return new Response(req.method==='HEAD'?null:o.body,{headers:h})}
 async function api(req,env){const u=new URL(req.url);if(u.hostname!==env.ADMIN_HOST)return J({error:'Forbidden'},403);if(u.pathname==='/api/admin/products'&&req.method==='GET')return J(await rows(env.DB,'SELECT * FROM products ORDER BY id DESC'));if(u.pathname==='/api/admin/products'&&req.method==='POST'){const b=await req.json(),name=String(b.name||'').trim(),slug=slugify(b.slug||name);if(!name||!slug)return J({error:'Name required'},400);const x=await env.DB.prepare('INSERT INTO products(name,slug,summary,description,status,seo_title,seo_description,updated_at) VALUES(?,?,?,?,?,?,?,?)').bind(name,slug,b.summary||'',b.description||'',b.status||'draft',b.seo_title||'',b.seo_description||'',new Date().toISOString()).run();return J({success:true,id:x.meta.last_row_id})}const pm=u.pathname.match(/^\/api\/admin\/products\/(\d+)$/);if(pm&&req.method==='PUT'){const b=await req.json();await env.DB.prepare('UPDATE products SET name=?,slug=?,summary=?,description=?,status=?,seo_title=?,seo_description=?,updated_at=? WHERE id=?').bind(b.name,slugify(b.slug||b.name),b.summary||'',b.description||'',b.status||'draft',b.seo_title||'',b.seo_description||'',new Date().toISOString(),Number(pm[1])).run();return J({success:true})}if(u.pathname==='/api/admin/media'&&req.method==='POST'){const fd=await req.formData(),f=fd.get('file');if(!f||typeof f==='string')return J({error:'No file'},400);const ok=['image/jpeg','image/png','image/webp','image/gif','video/mp4','application/pdf'];if(!ok.includes(f.type))return J({error:'Unsupported file type'},400);const ext=(f.name.split('.').pop()||'bin').replace(/[^a-z0-9]/gi,'').toLowerCase(),kind=f.type.startsWith('image/')?'images':f.type.startsWith('video/')?'videos':'documents',key=`${kind}/${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}.${ext}`;await env.MEDIA.put(key,f.stream(),{httpMetadata:{contentType:f.type}});return J({success:true,key,url:`/media/${key}`})}return J({error:'Not Found'},404)}
 async function sitemap(env){const p=await rows(env.DB,"SELECT slug,updated_at FROM products WHERE status='published' ORDER BY id");const xml=`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${E(env.SITE_URL)}/</loc></url>${p.map(x=>`<url><loc>${E(env.SITE_URL)}/products/${E(x.slug)}/</loc><lastmod>${E(x.updated_at)}</lastmod></url>`).join('')}</urlset>`;return new Response(xml,{headers:{'content-type':'application/xml; charset=utf-8'}})}
-async function app(req,env){const u=new URL(req.url);if (
-  u.pathname.startsWith("/site.css") ||
-  u.pathname.startsWith("/admin.css") ||
-  u.pathname.startsWith("/admin.js") ||
-  u.pathname.startsWith("/robots.txt")
-) {
-  return await env.ASSETS.fetch(req);
-}if(u.pathname.startsWith('/media/'))return await media(req,env);if(u.pathname.startsWith('/api/'))return await api(req,env);if(u.hostname===env.ADMIN_HOST)return await env.ASSETS.fetch(new Request(new URL('/admin.html',req.url),req));const rd=await one(env.DB,'SELECT new_path,status_code FROM redirects WHERE old_path=?',u.pathname);if(rd)return Response.redirect(`${env.SITE_URL}${rd.new_path}`,rd.status_code||301);if(u.pathname==='/')return await home(env);if(/^\/products\/?$/.test(u.pathname))return await products(env,u);const pm=u.pathname.match(/^\/products\/([^/]+)\/?$/);if(pm)return await product(env,decodeURIComponent(pm[1]));if(/^\/about\/?$/.test(u.pathname))return await basic(env,'about');if(/^\/contact\/?$/.test(u.pathname))return await basic(env,'contact');if(/^\/news\/?$/.test(u.pathname))return await listPosts(env,'news');if(/^\/cases\/?$/.test(u.pathname))return await listPosts(env,'case');if(/^\/videos\/?$/.test(u.pathname))return await videos(env);if(u.pathname==='/sitemap.xml')return await sitemap(env);return new Response('Not Found',{status:404})}
-export default {async fetch(req,env,ctx){try{const res=await app(req,env);if(!(res instanceof Response))throw new TypeError('Route did not return Response');return res}catch(err){console.error('SMUSU_V2_ERROR',err?.stack||err?.message||String(err));return new Response(`SMUSU V2 Error\n${err?.message||String(err)}`,{status:500,headers:{'content-type':'text/plain; charset=utf-8'}})}}};
+async function app(req, env) {
+  const u = new URL(req.url);
+
+  // --------------------------
+  // Static Assets
+  // --------------------------
+
+  if (
+    u.pathname === "/site.css" ||
+    u.pathname === "/admin.css" ||
+    u.pathname === "/admin.js" ||
+    u.pathname === "/robots.txt"
+  ) {
+    return await env.ASSETS.fetch(req);
+  }
+
+
+  // --------------------------
+  // R2 Media
+  // --------------------------
+
+  if (u.pathname.startsWith("/media/")) {
+    return await media(req, env);
+  }
+
+
+  // --------------------------
+  // API
+  // --------------------------
+
+  if (u.pathname.startsWith("/api/")) {
+    return await api(req, env);
+  }
+
+
+  // --------------------------
+  // Admin
+  // --------------------------
+
+  if (u.hostname === env.ADMIN_HOST) {
+
+    // 后台根目录和 /admin 都返回 admin.html
+    if (
+      u.pathname === "/" ||
+      u.pathname === "/admin" ||
+      u.pathname === "/admin/"
+    ) {
+
+      const assetUrl = new URL(
+        "/admin.html",
+        req.url
+      );
+
+      return await env.ASSETS.fetch(
+        new Request(
+          assetUrl.toString(),
+          {
+            method: "GET",
+            headers: req.headers
+          }
+        )
+      );
+    }
+
+    return new Response(
+      "Not Found",
+      {
+        status: 404
+      }
+    );
+  }
+
+
+  // --------------------------
+  // Legacy redirects
+  // --------------------------
+
+  const rd = await one(
+    env.DB,
+    "SELECT new_path,status_code FROM redirects WHERE old_path=?",
+    u.pathname
+  );
+
+  if (rd) {
+    return Response.redirect(
+      `${env.SITE_URL}${rd.new_path}`,
+      rd.status_code || 301
+    );
+  }
+
+
+  // --------------------------
+  // Website
+  // --------------------------
+
+  if (u.pathname === "/") {
+    return await home(env);
+  }
+
+  if (/^\/products\/?$/.test(u.pathname)) {
+    return await products(env, u);
+  }
+
+  const pm =
+    u.pathname.match(
+      /^\/products\/([^/]+)\/?$/
+    );
+
+  if (pm) {
+    return await product(
+      env,
+      decodeURIComponent(pm[1])
+    );
+  }
+
+  if (/^\/about\/?$/.test(u.pathname)) {
+    return await basic(
+      env,
+      "about"
+    );
+  }
+
+  if (/^\/contact\/?$/.test(u.pathname)) {
+    return await basic(
+      env,
+      "contact"
+    );
+  }
+
+  if (/^\/news\/?$/.test(u.pathname)) {
+    return await listPosts(
+      env,
+      "news"
+    );
+  }
+
+  if (/^\/cases\/?$/.test(u.pathname)) {
+    return await listPosts(
+      env,
+      "case"
+    );
+  }
+
+  if (/^\/videos\/?$/.test(u.pathname)) {
+    return await videos(env);
+  }
+
+  if (u.pathname === "/sitemap.xml") {
+    return await sitemap(env);
+  }
+
+  return new Response(
+    "Not Found",
+    {
+      status: 404
+    }
+  );
+}export default {async fetch(req,env,ctx){try{const res=await app(req,env);if(!(res instanceof Response))throw new TypeError('Route did not return Response');return res}catch(err){console.error('SMUSU_V2_ERROR',err?.stack||err?.message||String(err));return new Response(`SMUSU V2 Error\n${err?.message||String(err)}`,{status:500,headers:{'content-type':'text/plain; charset=utf-8'}})}}};
