@@ -1,23 +1,19 @@
-# SMUSU CMS V4.2
+# V4.3.1 视频编辑与彻底删除补丁
 
-Complete replacement release combining the fixes validated in production testing.
+## 为什么在 R2 删除后后台仍有一个位置
+后台列表读取的是 D1 `videos` 表，不是 R2 文件列表。手工删除 R2 对象只删除文件，不会删除 D1 内容记录，因此标题和占位仍存在。
 
-Key points:
-- Category upload endpoint now always uploads/deduplicates then immediately updates `categories.image_key`.
-- Product Families reads `categories.image_key`.
-- Hero area is fully CMS-managed. One published Hero acts as a single image; two or more published Heroes rotate automatically.
-- Hero title, subtitle, two CTA buttons, sort order, visibility and image are editable.
-- News/Cases create/edit with cover upload and published detail routes.
-- Products retain category, images, gallery, specifications and publishing.
-- Media dedup uses SHA-256 + `media_assets`.
-- Inquiry list is two-line preview + detail, paginated 20/page.
+## 接入步骤
+1. 把 `src/video-delete-route.js` 的路由代码复制到 `src/index.js` 的 `api(req,env)` 内，并放在最终 `Not Found` 之前。
+2. 确保同一路径没有更早的旧 DELETE 路由。若有，删除旧 DELETE 路由。
+3. 用 `public/video-list-replacement.js` 替换 `public/admin.js` 中旧的 `loadVideos`、`editVideo`、`deleteVideo` 和 `#videoDelete` 处理代码。
+4. 确保后台视频表单存在 `public/video-buttons.html` 中列出的所有 ID。
+5. 将 `public/video-buttons.css` 追加到 `public/admin.css`。
+6. 部署后按 Ctrl+Shift+R 强制刷新。
 
-Run `migrations/0007_v40.sql` once in D1 Studio before opening the updated admin. Existing data is not deleted.
-
-## V4.2
-- Hero display reduced to 16:9, max-height 340px, object-fit cover.
-- Hero uploads limited to 5 MB and image MIME types, with local preview and file-size feedback.
-- Category upload continues to update categories.image_key directly, so each Product Families card must have its own category image.
-
-## V4.2 classification image fix
-Category information and optional category image are now sent in one multipart POST to `/api/admin/categories/:id/save`. The Worker deduplicates/uploads the file and writes `categories.image_key` inside the same request, then reads the row back and returns the saved image key. The admin displays the returned image key immediately so failure can no longer be hidden.
+## 删除行为
+- 列表中每条记录都有“编辑”和“删除”。
+- “删除”会删除 D1 `videos` 记录，因此占位立即消失。
+- 同时尝试删除 R2 视频和封面。即使 R2 文件先被手工删除，D1 记录仍会正常删除。
+- `media_assets` 仅在没有其他 CMS 记录引用同一对象时删除。
+- 如果只想删除 D1 记录并保留 R2，可调用 `DELETE /api/admin/videos/:id?keep_files=1`。
