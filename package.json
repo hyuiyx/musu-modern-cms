@@ -1,1 +1,1 @@
-{"name":"musu-modern-cms-v22a","version":"2.2.0","private":true,"scripts":{"dev":"wrangler dev","deploy":"wrangler deploy"},"devDependencies":{"wrangler":"^4.0.0"}}
+{"name":"smusu-cms-v23","version":"2.3.0","private":true,"scripts":{"dev":"wrangler dev","deploy":"wrangler deploy"},"devDependencies":{"wrangler":"^4.0.0"}}
