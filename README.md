@@ -1,4 +1,4 @@
-# SMUSU CMS V3.1
+# SMUSU CMS V3.2
 
 Direct replacement upgrade for the existing `musu-modern-cms` Worker. Reuses current D1 `musu-db`, R2 `smusu-media`, `staging.ufya.tech`, and `admin.ufya.tech`.
 
@@ -23,3 +23,9 @@ Protect `admin.ufya.tech` with Cloudflare Access. Add Turnstile server-side vali
 - Upload progress bars for product/category/news/video/media uploads.
 - Category image upload directly from category editor; homepage Product Families reads category.image_key.
 - News/Case detail pages.
+
+## V3.2 UI repair
+- Category image: visible select-file input, upload/change button, preview, progress, remove button.
+- Product Families reads category image_key; upload through Category Management.
+- News/Case: visible cover preview, cancel-selected-file, remove-current-cover, edit button, save progress, post-save published-page button.
+- News/Case list shows View for published records.
