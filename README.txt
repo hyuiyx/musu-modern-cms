@@ -1,10 +1,14 @@
-直接覆盖：
-1. public/admin.html 覆盖 GitHub 的 public/admin.html
-2. public/admin.js 覆盖 GitHub 的 public/admin.js
-3. src/index.js 覆盖 GitHub 的 src/index.js
-4. package.json 覆盖根目录 package.json
-5. 将 public/admin-v46-additions.css 的内容复制到现有 public/admin.css 最末尾
-6. 保留原 wrangler.jsonc
-7. 提交 main，Cloudflare 部署命令使用 npm run deploy
-8. 部署后 Ctrl+Shift+R
-不再需要 admin-v46.js、v46-api.js 或 tools/apply-v46.mjs。
+SMUSU CMS V4.6.2 直接覆盖版
+
+基于 V4.6.1，新增分类图片位置调节：
+- 水平位置 0-100
+- 垂直位置 0-100
+- 裁切铺满 cover
+- 完整显示 contain
+- 后台实时预览
+- 保存到 D1 并应用到前台 Product Families
+
+覆盖：public/admin.html、public/admin.js、src/index.js、package.json。
+将 public/admin-v46-additions.css 内容复制到原 public/admin.css 最末尾。之前追加过旧版内容也可以直接再次追加，新规则会覆盖旧规则。
+保留原 wrangler.jsonc。提交 main，部署命令 npm run deploy，完成后 Ctrl+Shift+R。
+V4.6.2 会自动检查分类与视频字段，不需要手工执行 D1 ALTER。
