@@ -1,4 +1,4 @@
-# SMUSU Modern CMS V2
+# SMUSU Modern CMS V2.1
 
 This V2 replaces the original Worker routing code while reusing the existing Cloudflare resources.
 
