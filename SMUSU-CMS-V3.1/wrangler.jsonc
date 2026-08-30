@@ -1,0 +1,11 @@
+{
+  "$schema":"./node_modules/wrangler/config-schema.json",
+  "name":"musu-modern-cms",
+  "main":"src/index.js",
+  "compatibility_date":"2026-08-30",
+  "assets":{"directory":"./public","binding":"ASSETS","run_worker_first":true},
+  "d1_databases":[{"binding":"DB","database_name":"musu-db","database_id":"1982263a-9d50-4ce5-ab2c-c9c263a7351a"}],
+  "r2_buckets":[{"binding":"MEDIA","bucket_name":"smusu-media"}],
+  "vars":{"SITE_URL":"https://staging.ufya.tech","ADMIN_HOST":"admin.ufya.tech"},
+  "observability":{"enabled":true,"head_sampling_rate":1}
+}
