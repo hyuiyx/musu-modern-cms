@@ -1,15 +1,12 @@
-# SMUSU CMS V5.1.3 合并完整版
+# SMUSU CMS V5.1.4 合并修复版
 
-本包将 V5.1、V5.1.1 和 V5.1.2 的功能合并为一个可直接覆盖的版本，不需要按历史版本逐个升级。
+V5.1.4 修复公司资料后台打开时出现 `Cannot set properties of null (setting innerHTML)` 的问题。
 
-已合并：
-- 公司资料后台、公司主图、图库、优势、企业数据、证书、发展历程
-- About 页面及完整前台样式
-- V5.0 首页视觉与 V5.0.1 下拉菜单修复
-- 视频新增、编辑、删除、替换、封面、排序、状态、上传进度和成功提示
-- 视频重复 Slug 自动处理
-- 后台产品图片缩略图尺寸限制
-- 公司图库、分类、Hero、视频封面和预览图片尺寸限制
-- D1 公司资料表自动建立及视频字段自动检查
+根因是公司资料集合名称使用复数 API 路径，但部分后台容器 ID 使用单数名称：
+- `features` 对应 `featureList`
+- `metrics` 对应 `metricList`
+- `certificates` 对应 `certificateList`
 
-部署时保留现有 `wrangler.jsonc`，用本包覆盖 GitHub 同名文件，提交 `main`，Cloudflare Deploy command 使用 `npm run deploy`。
+V5.1.4 增加明确映射和空元素保护，并修复核心优势、企业数据保存时调用错误 API 路径的问题。V5.1.3 的公司资料、视频编辑、后台缩略图、About 样式和下拉菜单修复均保留。
+
+直接覆盖 GitHub 同名文件，保留原 `wrangler.jsonc`，提交 main，部署最新 commit，随后强制刷新。
