@@ -14,3 +14,18 @@
 
 /* V5.1.6 dropdown delayed-close support */
 .drop.menuOpenItem .dropmenu{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0);display:block}.dropmenu{transition:opacity .22s ease,transform .22s ease,visibility .22s ease}@media(max-width:850px){.dropmenu{transition:none!important}.drop.menuOpenItem .dropmenu{display:block!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important}.drop:not(.menuOpenItem) .dropmenu{display:none!important}}
+/* Append this entire file to the END of the existing public/site.css */
+.drop{position:relative}
+.dropmenu{z-index:200;display:block;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(7px);transition:opacity .2s ease,transform .2s ease,visibility .2s ease}
+.dropmenu::before{content:"";position:absolute;left:0;right:0;top:-18px;height:18px;background:transparent}
+.drop:hover>.dropmenu,.drop:focus-within>.dropmenu,.drop.menuOpenItem>.dropmenu{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0)}
+@media(max-width:850px){
+  .navlinks{overflow:visible!important;max-height:calc(100vh - 78px);overflow-y:auto!important}
+  .drop{display:block!important;width:100%}
+  .drop>a{display:flex!important;justify-content:space-between;align-items:center;width:100%;min-height:48px;padding:10px 0!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .dropmenu{position:static!important;display:none!important;width:100%;min-width:0!important;margin:0!important;padding:6px 0 8px 16px!important;border:0!important;box-shadow:none!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important;transition:none!important}
+  .drop:hover>.dropmenu,.drop:focus-within>.dropmenu{display:none!important}
+  .drop.menuOpenItem>.dropmenu{display:block!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important}
+  .dropmenu::before{display:none!important}
+  .dropmenu a{display:flex!important;align-items:center;min-height:46px;padding:10px 12px!important;border-radius:8px;touch-action:manipulation}
+}
