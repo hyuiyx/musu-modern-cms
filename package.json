@@ -1,1 +1,1 @@
-{"name":"smusu-cms-v525","version":"5.2.5","private":true,"scripts":{"prepare-deploy":"node tools/apply-v525.mjs","deploy":"npm run prepare-deploy && wrangler deploy","dev":"npm run prepare-deploy && wrangler dev"},"devDependencies":{"wrangler":"^4.2.0"}}
+{"name":"smusu-cms-v526","version":"5.2.6","private":true,"scripts":{"prepare-deploy":"node tools/apply-v526.mjs","deploy":"npm run prepare-deploy && wrangler deploy","dev":"npm run prepare-deploy && wrangler dev"},"devDependencies":{"wrangler":"^4.2.0"}}

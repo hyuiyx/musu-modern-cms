@@ -1,5 +1,5 @@
-# V5.2.5 询盘后台最终覆盖
+# V5.2.6 询盘后台直接整合版
 
-截图仍显示旧布局，说明旧 admin.js 的 tab onclick 在增强脚本之后再次渲染旧列表。V5.2.5 使用捕获阶段拦截“留言/询盘”按钮，阻止旧渲染函数执行，然后只渲染新表格。
+外接 admin-inquiries.js 一直未接管旧页面，因此本版不再加载外挂询盘文件。部署前直接替换 public/admin.js 中的 loadInq/showInq，并把新样式直接写入 public/admin.css。
 
-覆盖 public、tools、package.json，保留 wrangler.jsonc 和其他业务文件，使用 npm run deploy。
+覆盖 tools 和 package.json，保留其他文件，Cloudflare Deploy command 必须使用 npm run deploy。构建日志必须出现：V5.2.6 inquiry UI integrated directly into admin.js/admin.css。
