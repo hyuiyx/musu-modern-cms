@@ -1,56 +1,117 @@
-(()=>{
-  const slides=[...document.querySelectorAll('.heroSlide')];
-  const dots=[...document.querySelectorAll('.heroDots button')];
-  if(slides.length>1){
-    let i=0,t;
-    const show=n=>{i=(n+slides.length)%slides.length;slides.forEach((x,j)=>x.classList.toggle('on',j===i));dots.forEach((x,j)=>x.classList.toggle('on',j===i))};
-    const start=()=>{clearInterval(t);t=setInterval(()=>show(i+1),window.HERO_INTERVAL||5000)};
-    document.querySelector('.heroNext')?.addEventListener('click',()=>{show(i+1);start()});
-    document.querySelector('.heroPrev')?.addEventListener('click',()=>{show(i-1);start()});
-    dots.forEach(x=>x.addEventListener('click',()=>{show(+x.dataset.i);start()}));
-    document.querySelector('.heroSlider')?.addEventListener('mouseenter',()=>clearInterval(t));
-    document.querySelector('.heroSlider')?.addEventListener('mouseleave',start);
-    start();
+/* SMUSU CMS V5.1.7 - complete replacement for public/site.js */
+(() => {
+  'use strict';
+
+  const MOBILE_QUERY = '(max-width: 850px)';
+  const isMobile = () => window.matchMedia(MOBILE_QUERY).matches;
+  const dropdowns = [...document.querySelectorAll('.drop')];
+  let desktopCloseTimer = 0;
+
+  function setExpanded(drop, expanded) {
+    if (!drop) return;
+    drop.classList.toggle('menuOpenItem', expanded);
+    const trigger = drop.querySelector(':scope > a');
+    if (trigger) trigger.setAttribute('aria-expanded', String(expanded));
   }
 
-  document.querySelectorAll('.drop').forEach(drop=>{
-    const trigger=drop.querySelector(':scope > a');
-    if(!trigger)return;
-    trigger.setAttribute('aria-haspopup','true');
-    trigger.setAttribute('aria-expanded','false');
-    trigger.addEventListener('click',e=>{
-      if(window.matchMedia('(max-width:850px)').matches){
-        e.preventDefault();
-        const open=!drop.classList.contains('menuOpenItem');
-        document.querySelectorAll('.drop.menuOpenItem').forEach(x=>{x.classList.remove('menuOpenItem');x.querySelector(':scope > a')?.setAttribute('aria-expanded','false')});
-        drop.classList.toggle('menuOpenItem',open);
-        trigger.setAttribute('aria-expanded',String(open));
-      }
+  function closeAll(except = null) {
+    dropdowns.forEach(drop => {
+      if (drop !== except) setExpanded(drop, false);
+    });
+  }
+
+  dropdowns.forEach(drop => {
+    const trigger = drop.querySelector(':scope > a');
+    const menu = drop.querySelector(':scope > .dropmenu');
+    if (!trigger || !menu) return;
+
+    trigger.setAttribute('aria-haspopup', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    // Desktop: keep the panel open while the pointer moves from title to options.
+    drop.addEventListener('pointerenter', () => {
+      if (isMobile()) return;
+      clearTimeout(desktopCloseTimer);
+      closeAll(drop);
+      setExpanded(drop, true);
+    });
+
+    drop.addEventListener('pointerleave', () => {
+      if (isMobile()) return;
+      clearTimeout(desktopCloseTimer);
+      desktopCloseTimer = window.setTimeout(() => setExpanded(drop, false), 900);
+    });
+
+    // Mobile: pointerdown capture runs before any legacy click handler.
+    trigger.addEventListener('pointerdown', event => {
+      if (!isMobile()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      const shouldOpen = !drop.classList.contains('menuOpenItem');
+      closeAll(drop);
+      setExpanded(drop, shouldOpen);
+    }, true);
+
+    // Suppress the synthetic click generated after touch/pointerdown.
+    trigger.addEventListener('click', event => {
+      if (!isMobile()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }, true);
+
+    menu.addEventListener('pointerdown', event => {
+      event.stopPropagation();
+    }, true);
+
+    menu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        setExpanded(drop, false);
+        document.body.classList.remove('menuOpen');
+      });
     });
   });
 
-  document.addEventListener('click',e=>{
-    if(!e.target.closest('.drop'))document.querySelectorAll('.drop.menuOpenItem').forEach(x=>{x.classList.remove('menuOpenItem');x.querySelector(':scope > a')?.setAttribute('aria-expanded','false')});
+  // Close only when the visitor taps completely outside the navigation dropdown.
+  document.addEventListener('pointerdown', event => {
+    if (isMobile() && !event.target.closest('.drop')) closeAll();
   });
 
-  document.querySelectorAll('.navlinks a').forEach(a=>a.addEventListener('click',()=>{
-    if(!a.closest('.drop')||a.closest('.dropmenu'))document.body.classList.remove('menuOpen');
-  }));
-})();
+  // Reset stale state when changing between desktop and mobile.
+  window.matchMedia(MOBILE_QUERY).addEventListener?.('change', () => closeAll());
 
+  // Mobile hamburger.
+  const mobileButton = document.querySelector('.mobileBtn');
+  if (mobileButton) {
+    mobileButton.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      document.body.classList.toggle('menuOpen');
+      if (!document.body.classList.contains('menuOpen')) closeAll();
+    });
+  }
 
-// V5.1.6 dropdown interaction: mobile click stays open, desktop closes after 650 ms.
-(()=>{
- const mobile=()=>window.matchMedia('(max-width:850px)').matches;
- document.querySelectorAll('.drop').forEach(drop=>{
-   const trigger=drop.querySelector(':scope > a'); if(!trigger)return;
-   let timer=0;
-   const open=()=>{clearTimeout(timer);drop.classList.add('menuOpenItem');trigger.setAttribute('aria-expanded','true')};
-   const close=(delay=650)=>{clearTimeout(timer);timer=setTimeout(()=>{drop.classList.remove('menuOpenItem');trigger.setAttribute('aria-expanded','false')},delay)};
-   drop.addEventListener('pointerenter',()=>{if(!mobile())open()});
-   drop.addEventListener('pointerleave',()=>{if(!mobile())close(650)});
-   trigger.addEventListener('click',e=>{if(mobile()){e.preventDefault();e.stopPropagation();const was=drop.classList.contains('menuOpenItem');document.querySelectorAll('.drop.menuOpenItem').forEach(x=>{if(x!==drop)x.classList.remove('menuOpenItem')});was?close(0):open()}});
-   drop.querySelectorAll('.dropmenu a').forEach(a=>a.addEventListener('click',()=>{clearTimeout(timer);drop.classList.remove('menuOpenItem');document.body.classList.remove('menuOpen')}));
- });
- document.addEventListener('click',e=>{if(mobile()&&!e.target.closest('.drop'))document.querySelectorAll('.drop.menuOpenItem').forEach(x=>x.classList.remove('menuOpenItem'))});
+  // Hero slider.
+  const slides = [...document.querySelectorAll('.heroSlide')];
+  const dots = [...document.querySelectorAll('.heroDots button')];
+  if (slides.length > 1) {
+    let index = 0;
+    let timer = 0;
+    const show = next => {
+      index = (next + slides.length) % slides.length;
+      slides.forEach((slide, i) => slide.classList.toggle('on', i === index));
+      dots.forEach((dot, i) => dot.classList.toggle('on', i === index));
+    };
+    const start = () => {
+      clearInterval(timer);
+      timer = window.setInterval(() => show(index + 1), window.HERO_INTERVAL || 5000);
+    };
+    document.querySelector('.heroNext')?.addEventListener('click', () => { show(index + 1); start(); });
+    document.querySelector('.heroPrev')?.addEventListener('click', () => { show(index - 1); start(); });
+    dots.forEach(dot => dot.addEventListener('click', () => { show(Number(dot.dataset.i)); start(); }));
+    document.querySelector('.heroSlider')?.addEventListener('pointerenter', () => clearInterval(timer));
+    document.querySelector('.heroSlider')?.addEventListener('pointerleave', start);
+    start();
+  }
 })();
