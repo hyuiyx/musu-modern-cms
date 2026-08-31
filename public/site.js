@@ -37,3 +37,20 @@
     if(!a.closest('.drop')||a.closest('.dropmenu'))document.body.classList.remove('menuOpen');
   }));
 })();
+
+
+// V5.1.6 dropdown interaction: mobile click stays open, desktop closes after 650 ms.
+(()=>{
+ const mobile=()=>window.matchMedia('(max-width:850px)').matches;
+ document.querySelectorAll('.drop').forEach(drop=>{
+   const trigger=drop.querySelector(':scope > a'); if(!trigger)return;
+   let timer=0;
+   const open=()=>{clearTimeout(timer);drop.classList.add('menuOpenItem');trigger.setAttribute('aria-expanded','true')};
+   const close=(delay=650)=>{clearTimeout(timer);timer=setTimeout(()=>{drop.classList.remove('menuOpenItem');trigger.setAttribute('aria-expanded','false')},delay)};
+   drop.addEventListener('pointerenter',()=>{if(!mobile())open()});
+   drop.addEventListener('pointerleave',()=>{if(!mobile())close(650)});
+   trigger.addEventListener('click',e=>{if(mobile()){e.preventDefault();e.stopPropagation();const was=drop.classList.contains('menuOpenItem');document.querySelectorAll('.drop.menuOpenItem').forEach(x=>{if(x!==drop)x.classList.remove('menuOpenItem')});was?close(0):open()}});
+   drop.querySelectorAll('.dropmenu a').forEach(a=>a.addEventListener('click',()=>{clearTimeout(timer);drop.classList.remove('menuOpenItem');document.body.classList.remove('menuOpen')}));
+ });
+ document.addEventListener('click',e=>{if(mobile()&&!e.target.closest('.drop'))document.querySelectorAll('.drop.menuOpenItem').forEach(x=>x.classList.remove('menuOpenItem'))});
+})();

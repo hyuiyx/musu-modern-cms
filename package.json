@@ -1,6 +1,6 @@
 {
-  "name": "smusu-cms-v514",
-  "version": "5.1.4",
+  "name": "smusu-cms-v516",
+  "version": "5.1.6",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
