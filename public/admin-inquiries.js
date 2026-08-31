@@ -1,4 +1,4 @@
-/* SMUSU CMS V5.2.3 - inquiry list enhancement */
+/* SMUSU CMS V5.2.4 - inquiry list enhancement */
 (() => {
   'use strict';
 
