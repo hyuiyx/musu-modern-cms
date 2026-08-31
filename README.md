@@ -1,5 +1,15 @@
-# SMUSU CMS V5.1 完整覆盖包
+# SMUSU CMS V5.1.3 合并完整版
 
-覆盖 GitHub 中同名文件，但保留现有 `wrangler.jsonc`。部署命令使用 `npm run deploy`。首次打开后台“公司资料”会自动创建公司资料表。
+本包将 V5.1、V5.1.1 和 V5.1.2 的功能合并为一个可直接覆盖的版本，不需要按历史版本逐个升级。
 
-重要：如果现有 V5.0 `site.css` 已经满意，请不要覆盖 `public/site.css`，只把 `public/site-v51.css` 放入 public，并在现有 site.css 最后增加 `@import url("/site-v51.css");`。
+已合并：
+- 公司资料后台、公司主图、图库、优势、企业数据、证书、发展历程
+- About 页面及完整前台样式
+- V5.0 首页视觉与 V5.0.1 下拉菜单修复
+- 视频新增、编辑、删除、替换、封面、排序、状态、上传进度和成功提示
+- 视频重复 Slug 自动处理
+- 后台产品图片缩略图尺寸限制
+- 公司图库、分类、Hero、视频封面和预览图片尺寸限制
+- D1 公司资料表自动建立及视频字段自动检查
+
+部署时保留现有 `wrangler.jsonc`，用本包覆盖 GitHub 同名文件，提交 `main`，Cloudflare Deploy command 使用 `npm run deploy`。
