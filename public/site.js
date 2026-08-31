@@ -1,69 +1,82 @@
-/* SMUSU CMS V5.1.9 - complete replacement, one menu handler only */
+/* SMUSU CMS V5.2.0 - mobile submenu selection fix */
 (() => {
   'use strict';
+
   const MOBILE_WIDTH = 850;
-  const mobile = () => window.innerWidth <= MOBILE_WIDTH;
-  const drops = () => [...document.querySelectorAll('.navlinks .drop')];
+  const isMobile = () => window.innerWidth <= MOBILE_WIDTH;
+  const drops = [...document.querySelectorAll('.navlinks .drop')];
 
   function setOpen(drop, open) {
-    if (!drop) return;
     drop.classList.toggle('menuOpenItem', open);
-    drop.querySelector(':scope > a')?.setAttribute('aria-expanded', String(open));
+    drop.querySelector('.dropTrigger')?.setAttribute('aria-expanded', String(open));
   }
 
   function closeAll(except = null) {
-    drops().forEach(drop => { if (drop !== except) setOpen(drop, false); });
+    drops.forEach(drop => {
+      if (drop !== except) setOpen(drop, false);
+    });
   }
 
-  // Use exactly one delegated click handler for all mobile dropdowns.
-  document.addEventListener('click', event => {
-    if (!mobile()) return;
-    const trigger = event.target.closest('.navlinks .drop > a');
-    if (trigger) {
+  // Convert Products / News / Contact parent links into real buttons.
+  // A button can only open the submenu, so it can never navigate to the first item.
+  drops.forEach(drop => {
+    const oldTrigger = drop.querySelector(':scope > a');
+    const menu = drop.querySelector(':scope > .dropmenu');
+    if (!oldTrigger || !menu) return;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'dropTrigger';
+    button.innerHTML = oldTrigger.innerHTML.replace(/[▾▼]\s*$/, '').trim();
+    button.setAttribute('aria-haspopup', 'true');
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-label', `${button.textContent.trim()} menu`);
+    oldTrigger.replaceWith(button);
+
+    button.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();
-      event.stopImmediatePropagation();
-      const drop = trigger.parentElement;
       const open = !drop.classList.contains('menuOpenItem');
       closeAll(drop);
       setOpen(drop, open);
-      return;
-    }
-    if (event.target.closest('.navlinks .dropmenu a')) {
-      closeAll();
-      document.body.classList.remove('menuOpen');
-      return;
-    }
-    if (!event.target.closest('.navlinks .drop')) closeAll();
-  }, true);
+    });
 
-  // The HTML already toggles body.menuOpen from the hamburger inline onclick.
-  // Do not bind a second hamburger click handler.
-
-  drops().forEach(drop => {
-    let timer = 0;
-    const trigger = drop.querySelector(':scope > a');
-    trigger?.setAttribute('aria-haspopup', 'true');
-    trigger?.setAttribute('aria-expanded', 'false');
+    let closeTimer = 0;
     drop.addEventListener('mouseenter', () => {
-      if (mobile()) return;
-      clearTimeout(timer);
+      if (isMobile()) return;
+      clearTimeout(closeTimer);
       closeAll(drop);
       setOpen(drop, true);
     });
     drop.addEventListener('mouseleave', () => {
-      if (mobile()) return;
-      clearTimeout(timer);
-      timer = setTimeout(() => setOpen(drop, false), 900);
+      if (isMobile()) return;
+      clearTimeout(closeTimer);
+      closeTimer = window.setTimeout(() => setOpen(drop, false), 900);
+    });
+
+    menu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', event => {
+        // Do not prevent default. The selected submenu URL opens normally.
+        event.stopPropagation();
+        closeAll();
+        document.body.classList.remove('menuOpen');
+      });
     });
   });
 
-  window.addEventListener('resize', () => closeAll());
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.drop')) closeAll();
+  });
+
+  window.addEventListener('resize', closeAll);
+
+  // Keep the existing inline hamburger onclick as the only hamburger handler.
 
   const slides = [...document.querySelectorAll('.heroSlide')];
   const dots = [...document.querySelectorAll('.heroDots button')];
   if (slides.length > 1) {
-    let index = 0, timer = 0;
+    let index = 0;
+    let timer = 0;
     const show = next => {
       index = (next + slides.length) % slides.length;
       slides.forEach((slide, i) => slide.classList.toggle('on', i === index));
@@ -71,7 +84,7 @@
     };
     const start = () => {
       clearInterval(timer);
-      timer = setInterval(() => show(index + 1), window.HERO_INTERVAL || 5000);
+      timer = window.setInterval(() => show(index + 1), window.HERO_INTERVAL || 5000);
     };
     document.querySelector('.heroNext')?.addEventListener('click', () => { show(index + 1); start(); });
     document.querySelector('.heroPrev')?.addEventListener('click', () => { show(index - 1); start(); });
